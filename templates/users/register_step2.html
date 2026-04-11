@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Verify Email — SocialHub{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <h1>SocialHub</h1>
+      <p>Check your inbox</p>
+    </div>
+
+    <div class="reg-steps">
+      <div class="reg-step done"><span><i class="bi bi-check-lg"></i></span><small>Your Info</small></div>
+      <div class="reg-step-line active"></div>
+      <div class="reg-step active"><span>2</span><small>Verify Email</small></div>
+      <div class="reg-step-line"></div>
+      <div class="reg-step"><span>3</span><small>Set Password</small></div>
+    </div>
+
+    <div class="otp-info-box">
+      <i class="bi bi-envelope-open-fill"></i>
+      <p>We sent a <strong>6-digit code</strong> to<br><strong>{{ email }}</strong></p>
+    </div>
+
+    <form method="POST" novalidate>
+      {% csrf_token %}
+      <div class="sh-form-group">
+        <label class="sh-label">Enter OTP Code</label>
+        {{ form.otp }}
+        {% if form.otp.errors %}<div class="sh-field-error">{{ form.otp.errors.0 }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="sh-btn-primary w-100">
+        <i class="bi bi-shield-check"></i> Verify Code
+      </button>
+    </form>
+
+    <div class="otp-resend">
+      Didn't receive it?
+      <a href="{% url 'users:register' %}">Go back and resend</a>
+    </div>
+    <p class="sh-terms text-center mt-2">Code expires in <strong>10 minutes</strong>.</p>
+  </div>
+</div>
+
+<style>
+.otp-input { font-size:28px !important; letter-spacing:10px; text-align:center; font-weight:700; padding:14px !important; }
+.otp-info-box { background:var(--brand-light); border-radius:var(--radius-lg); padding:16px; text-align:center; margin-bottom:24px; }
+.otp-info-box i { font-size:32px; color:var(--brand); display:block; margin-bottom:8px; }
+.otp-resend { text-align:center; color:var(--text-muted); font-size:13px; margin-top:16px; }
+.otp-resend a { color:var(--brand); font-weight:600; }
+</style>
+{% endblock %}

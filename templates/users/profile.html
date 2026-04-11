@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static user_tags %}
+{% block title %}{{ profile_user.username }} — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+    <div class="profile-header">
+      <div class="profile-avatar-wrap">
+        <img src="{{ profile.profile_picture.url }}" alt="{{ profile_user.username }}" class="profile-avatar">
+      </div>
+      <div class="profile-info">
+        <div class="profile-top-row">
+          <h1 class="profile-username">
+            {{ profile_user.username }}
+            {% if profile.is_private %}<span class="profile-private-badge" title="Private account"><i class="bi bi-lock-fill"></i></span>{% endif %}
+          </h1>
+
+          {% if is_own_profile %}
+            <a href="{% url 'users:edit_profile' %}" class="sh-btn-outline"><i class="bi bi-pencil"></i> Edit</a>
+          {% elif user.is_authenticated %}
+            <form method="POST" action="{% url 'users:toggle_follow' username=profile_user.username %}" class="follow-form d-inline">
+              {% csrf_token %}
+              {% if is_following %}
+                <button type="submit" class="sh-btn-follow following" data-username="{{ profile_user.username }}" data-following="true">
+                  <i class="bi bi-person-check-fill"></i> Following
+                </button>
+              {% elif follow_request_status == 'pending' %}
+                <button type="button" class="sh-btn-outline" disabled>
+                  <i class="bi bi-clock"></i> Requested
+                </button>
+              {% else %}
+                <button type="submit" class="sh-btn-follow" data-username="{{ profile_user.username }}" data-following="false">
+                  <i class="bi bi-person-plus"></i> Follow
+                </button>
+              {% endif %}
+            </form>
+            <!-- Chat button -->
+            <form method="POST" action="{% url 'chat:send_request' username=profile_user.username %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="sh-btn-outline"><i class="bi bi-chat"></i> Message</button>
+            </form>
+          {% endif %}
+        </div>
+
+        <div class="profile-stats">
+          <div class="profile-stat"><span class="stat-value">{{ profile.posts_count }}</span><span class="stat-label">Posts</span></div>
+          <div class="profile-stat" style="cursor:pointer" data-bs-toggle="modal" data-bs-target="#followersModal">
+            <span class="stat-value" id="followersCount">{{ profile.followers_count }}</span><span class="stat-label">Followers</span>
+          </div>
+          <div class="profile-stat" style="cursor:pointer" data-bs-toggle="modal" data-bs-target="#followingModal">
+            <span class="stat-value">{{ profile.following_count }}</span><span class="stat-label">Following</span>
+          </div>
+        </div>
+
+        <div class="profile-bio">
+          <strong>{{ profile_user.get_full_name|default:profile_user.username }}</strong>
+          {% if profile.bio %}<p>{{ profile.bio }}</p>{% endif %}
+          {% if profile.location %}<span class="profile-meta"><i class="bi bi-geo-alt"></i> {{ profile.location }}</span>{% endif %}
+          {% if profile.website %}<a href="{{ profile.website }}" target="_blank" class="profile-meta profile-link"><i class="bi bi-link-45deg"></i> {{ profile.website|truncatechars:30 }}</a>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Posts or locked state -->
+    {% if can_view %}
+      <div class="profile-grid-header"><i class="bi bi-grid-3x3"></i> Posts</div>
+      {% if posts %}
+        <div class="profile-post-grid">
+          {% for post in posts %}
+          <a href="{% url 'posts:post_detail' pk=post.pk %}" class="profile-grid-item">
+            {% if post.image %}<img src="{{ post.image.url }}" alt="Post" loading="lazy">
+            {% else %}<div class="profile-grid-text-post"><p>{{ post.caption|truncatechars:80 }}</p></div>{% endif %}
+            <div class="profile-grid-overlay">
+              <span><i class="bi bi-heart-fill"></i> {{ post.likes_count }}</span>
+              <span><i class="bi bi-chat-fill"></i> {{ post.comments_count }}</span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="sh-empty-state"><i class="bi bi-camera"></i><h3>No posts yet</h3>
+          {% if is_own_profile %}<a href="{% url 'posts:create_post' %}" class="sh-btn-primary">Create Post</a>{% endif %}
+        </div>
+      {% endif %}
+    {% else %}
+      <!-- Private & not following -->
+      <div class="sh-empty-state private-lock">
+        <i class="bi bi-lock-fill"></i>
+        <h3>This account is private</h3>
+        <p>Follow {{ profile_user.username }} to see their posts.</p>
+        {% if follow_request_status == 'pending' %}
+          <span class="sh-btn-outline"><i class="bi bi-clock"></i> Follow request sent</span>
+        {% elif not is_following and user.is_authenticated %}
+          <form method="POST" action="{% url 'users:toggle_follow' username=profile_user.username %}">
+            {% csrf_token %}
+            <button type="submit" class="sh-btn-primary"><i class="bi bi-person-plus"></i> Request to Follow</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+
+<!-- Followers Modal -->
+<div class="modal fade" id="followersModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable sh-modal">
+    <div class="modal-content">
+      <div class="modal-header sh-modal-header"><h5 class="modal-title">Followers</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body sh-modal-body">
+        {% for f in followers %}
+        <a href="{% url 'users:profile' username=f.follower.username %}" class="sh-user-row">
+          <img src="{{ f.follower.profile.profile_picture.url }}" class="sh-user-row-pic" alt="">
+          <div><strong>{{ f.follower.username }}</strong><small>{{ f.follower.get_full_name }}</small></div>
+        </a>
+        {% empty %}<p class="text-center py-3 text-muted">No followers yet.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Following Modal -->
+<div class="modal fade" id="followingModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable sh-modal">
+    <div class="modal-content">
+      <div class="modal-header sh-modal-header"><h5 class="modal-title">Following</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body sh-modal-body">
+        {% for f in following %}
+        <a href="{% url 'users:profile' username=f.following.username %}" class="sh-user-row">
+          <img src="{{ f.following.profile.profile_picture.url }}" class="sh-user-row-pic" alt="">
+          <div><strong>{{ f.following.username }}</strong><small>{{ f.following.get_full_name }}</small></div>
+        </a>
+        {% empty %}<p class="text-center py-3 text-muted">Not following anyone yet.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

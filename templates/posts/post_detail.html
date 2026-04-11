@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}Post by {{ post.author.username }} — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+    <div class="sh-center">
+
+        <div class="post-detail-card">
+
+            <!-- ---- Left: Image ---- -->
+            {% if post.image %}
+            <div class="post-detail-image-col">
+                <img src="{{ post.image.url }}" alt="Post by {{ post.author.username }}" class="post-detail-image">
+            </div>
+            {% endif %}
+
+            <!-- ---- Right: Info + Comments ---- -->
+            <div class="post-detail-info-col {% if not post.image %}post-detail-no-image{% endif %}">
+
+                <!-- Author Header -->
+                <div class="post-detail-header">
+                    <a href="{% url 'users:profile' username=post.author.username %}" class="post-author-link">
+                        <img src="{{ post.author.profile.profile_picture.url }}"
+                             alt="{{ post.author.username }}" class="post-author-pic">
+                        <div>
+                            <strong>{{ post.author.username }}</strong>
+                            {% if post.author.profile.location %}
+                                <small>{{ post.author.profile.location }}</small>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% if user == post.author %}
+                    <div class="dropdown">
+                        <button class="post-menu-btn" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end sh-dropdown">
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'posts:delete_post' pk=post.pk %}">
+                                    <i class="bi bi-trash"></i> Delete Post
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Caption -->
+                {% if post.caption %}
+                <div class="post-detail-caption">
+                    <strong>{{ post.author.username }}</strong>
+                    {{ post.caption }}
+                </div>
+                {% endif %}
+
+                <!-- Comments Section -->
+                <div class="post-detail-comments" id="comments">
+                    {% for comment in comments %}
+                    <div class="post-detail-comment" id="comment-{{ comment.pk }}">
+                        <a href="{% url 'users:profile' username=comment.author.username %}">
+                            <img src="{{ comment.author.profile.profile_picture.url }}"
+                                 alt="{{ comment.author.username }}" class="comment-pic">
+                        </a>
+                        <div class="comment-body">
+                            <a href="{% url 'users:profile' username=comment.author.username %}" class="comment-author">
+                                {{ comment.author.username }}
+                            </a>
+                            <span class="comment-text">{{ comment.text }}</span>
+                            <div class="comment-meta">
+                                <small>{{ comment.created_at|timesince }} ago</small>
+                                {% if user == comment.author or user == post.author %}
+                                <form method="POST" action="{% url 'posts:delete_comment' pk=comment.pk %}"
+                                      class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="comment-delete-btn" title="Delete comment">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+
+                            <!-- Replies -->
+                            {% for reply in comment.replies.all %}
+                            <div class="comment-reply">
+                                <a href="{% url 'users:profile' username=reply.author.username %}">
+                                    <img src="{{ reply.author.profile.profile_picture.url }}"
+                                         alt="{{ reply.author.username }}" class="comment-pic-sm">
+                                </a>
+                                <div class="comment-body">
+                                    <a href="{% url 'users:profile' username=reply.author.username %}" class="comment-author">
+                                        {{ reply.author.username }}
+                                    </a>
+                                    <span class="comment-text">{{ reply.text }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-3">No comments yet. Be the first!</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Actions -->
+                <div class="post-detail-actions">
+                    <div class="post-actions">
+                        <button class="post-action-btn like-btn {% if is_liked %}liked{% endif %}"
+                                data-post-id="{{ post.pk }}" aria-label="Like">
+                            <i class="bi {% if is_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                        </button>
+                        <label for="commentInput" class="post-action-btn" style="cursor:pointer">
+                            <i class="bi bi-chat"></i>
+                        </label>
+                    </div>
+                    <div class="post-likes">
+                        <span class="like-count" id="likes-{{ post.pk }}">{{ post.likes_count }}</span> likes
+                    </div>
+                    <div class="post-timestamp">{{ post.created_at|date:"F j, Y" }}</div>
+                </div>
+
+                <!-- Add Comment -->
+                {% if user.is_authenticated %}
+                <form class="post-detail-comment-form" data-post-id="{{ post.pk }}">
+                    {% csrf_token %}
+                    <input type="text" id="commentInput" class="post-comment-input"
+                           placeholder="Add a comment..." maxlength="1000" autocomplete="off">
+                    <button type="submit" class="post-comment-submit">Post</button>
+                </form>
+                {% endif %}
+
+            </div>
+        </div>
+
+    </div>
+
+    <aside class="sh-sidebar">
+        {% include 'partials/sidebar_user.html' %}
+    </aside>
+</div>
+{% endblock %}

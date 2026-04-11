@@ -1,0 +1,53 @@
+{% load static %}
+<div class="sidebar-user-card">
+  <a href="{% url 'users:profile' username=request.user.username %}" class="sidebar-user-link">
+    <img src="{{ request.user.profile.profile_picture.url }}" class="sidebar-user-pic" alt="">
+    <div class="sidebar-user-info">
+      <strong>{{ request.user.username }}</strong>
+      <small>{{ request.user.get_full_name }}</small>
+    </div>
+  </a>
+  <a href="{% url 'users:logout' %}" class="sidebar-logout" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+</div>
+
+<!-- Quick links -->
+<div class="sidebar-section" style="padding:12px 16px">
+  <a href="{% url 'posts:saved_posts' %}" class="sidebar-saved-link">
+    <i class="bi bi-bookmark"></i> Saved Posts
+  </a>
+  <a href="{% url 'users:follow_requests' %}" class="sidebar-saved-link">
+    <i class="bi bi-person-plus"></i> Follow Requests
+    {% if pending_follow_requests_count %}
+      <span class="sh-badge" style="position:static;margin-left:4px">{{ pending_follow_requests_count }}</span>
+    {% endif %}
+  </a>
+  <a href="{% url 'users:blocked_list' %}" class="sidebar-saved-link">
+    <i class="bi bi-slash-circle"></i> Blocked Users
+  </a>
+</div>
+
+{% if suggested_users %}
+<div class="sidebar-section">
+  <h6 class="sidebar-heading">Suggested for you</h6>
+  {% for u in suggested_users %}
+  <div class="sidebar-suggest-row">
+    <a href="{% url 'users:profile' username=u.username %}" class="sidebar-suggest-user">
+      <img src="{{ u.profile.profile_picture.url }}" alt="{{ u.username }}" class="sh-avatar-sm">
+      <div>
+        <strong>{{ u.username }}</strong>
+        <small>New to SocialHub</small>
+      </div>
+    </a>
+    <form method="POST" action="{% url 'users:toggle_follow' username=u.username %}">
+      {% csrf_token %}
+      <button type="submit" class="sidebar-follow-btn">Follow</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="sidebar-footer">
+  <a href="#">About</a> · <a href="#">Privacy</a> · <a href="#">Terms</a>
+  <p>© 2024 SocialHub</p>
+</div>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ active_theme|default:'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SocialHub{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<nav class="sh-navbar">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center justify-content-between w-100">
+
+      <a class="sh-brand" href="{% url 'posts:feed' %}">SocialHub</a>
+
+      <form class="sh-search-form d-none d-md-flex" action="{% url 'users:search' %}" method="GET">
+        <i class="bi bi-search sh-search-icon"></i>
+        <input type="text" name="q" class="sh-search-input" placeholder="Search people…"
+               value="{{ request.GET.q|default:'' }}" autocomplete="off">
+      </form>
+
+      <div class="sh-nav-actions">
+        <a href="{% url 'posts:feed' %}" class="sh-nav-icon {% if request.resolver_match.url_name == 'feed' %}active{% endif %}" title="Home">
+          <i class="bi bi-house{% if request.resolver_match.url_name == 'feed' %}-fill{% endif %}"></i>
+        </a>
+        <a href="{% url 'posts:explore' %}" class="sh-nav-icon {% if request.resolver_match.url_name == 'explore' %}active{% endif %}" title="Explore">
+          <i class="bi bi-compass{% if request.resolver_match.url_name == 'explore' %}-fill{% endif %}"></i>
+        </a>
+        <a href="{% url 'chat:inbox' %}" class="sh-nav-icon position-relative" title="Messages">
+          <i class="bi bi-chat-dots"></i>
+        </a>
+        <!-- Notifications -->
+        <a href="{% url 'notifications:list' %}" class="sh-nav-icon position-relative" title="Notifications">
+          <i class="bi bi-bell{% if unread_notifications_count %}-fill{% endif %}"></i>
+          {% if unread_notifications_count %}
+            <span class="sh-badge">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </a>
+        <!-- Create post -->
+        <a href="{% url 'posts:create_post' %}" class="sh-nav-icon sh-nav-create" title="New Post">
+          <i class="bi bi-plus-square"></i>
+        </a>
+        <!-- Dark mode toggle -->
+        <button class="sh-nav-icon sh-theme-toggle" id="themeToggleBtn" title="Toggle theme"
+                data-url="{% url 'users:toggle_theme' %}">
+          <i class="bi bi-{% if active_theme == 'dark' %}sun{% else %}moon{% endif %}-fill"></i>
+        </button>
+        <!-- Avatar -->
+        <a href="{% url 'users:profile' username=user.username %}" class="sh-nav-icon sh-nav-avatar" title="Profile">
+          <img src="{{ user.profile.profile_picture.url }}" alt="{{ user.username }}">
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+{% if messages %}
+<div class="sh-messages-container">
+  {% for message in messages %}
+  <div class="sh-toast sh-toast-{{ message.tags }}" role="alert">
+    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' or message.tags == 'danger' %}bi-x-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+    <span>{{ message }}</span>
+    <button type="button" class="sh-toast-close" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<main class="{% if user.is_authenticated %}sh-main{% else %}sh-main-auth{% endif %}">
+  {% block content %}{% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Auto-dismiss toasts
+  document.querySelectorAll('.sh-toast').forEach(t => {
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(120%)'; setTimeout(()=>t.remove(),400); }, 4000);
+  });
+
+  // Theme toggle AJAX
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', async () => {
+      const csrf = document.cookie.split('; ').find(r=>r.startsWith('csrftoken='))?.split('=')[1]||'';
+      const res  = await fetch(themeBtn.dataset.url, {
+        method: 'POST',
+        headers: {'X-Requested-With':'XMLHttpRequest','X-CSRFToken':csrf}
+      });
+      const data = await res.json();
+      document.documentElement.setAttribute('data-theme', data.theme);
+      const icon = themeBtn.querySelector('i');
+      icon.className = data.theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+    });
+  }
+});
+</script>
+</body>
+</html>

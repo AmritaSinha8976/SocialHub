@@ -1,0 +1,34 @@
+# ============================================================
+# render.yaml — Render.com deployment config
+# Commit this file to your repo and connect it on Render.
+# ============================================================
+
+services:
+  - type: web
+    name: socialhub
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn socialhub.wsgi --log-file -
+    envVars:
+      - key: DJANGO_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: socialhub.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: socialhub-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+databases:
+  - name: socialhub-db
+    plan: free
+    region: oregon

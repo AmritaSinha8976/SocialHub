@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Messages — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+
+    <!-- Pending chat requests -->
+    {% if pending_requests %}
+    <div class="sh-card mb-3">
+      <div class="sh-card-header"><h2><i class="bi bi-envelope-exclamation"></i> Chat Requests</h2></div>
+      <div style="padding:0 20px 16px">
+        {% for req in pending_requests %}
+        <div class="chat-request-row">
+          <a href="{% url 'users:profile' username=req.sender.username %}" class="chat-request-user">
+            <img src="{{ req.sender.profile.profile_picture.url }}" class="sh-avatar-md" alt="">
+            <div>
+              <strong>{{ req.sender.username }}</strong>
+              <small>wants to chat · {{ req.created_at|timesince }} ago</small>
+            </div>
+          </a>
+          <div class="d-flex gap-2">
+            <form method="POST" action="{% url 'chat:handle_request' request_id=req.pk action='accept' %}">
+              {% csrf_token %}
+              <button type="submit" class="sh-btn-primary py-1 px-3" style="font-size:13px">Accept</button>
+            </form>
+            <form method="POST" action="{% url 'chat:handle_request' request_id=req.pk action='reject' %}">
+              {% csrf_token %}
+              <button type="submit" class="sh-btn-ghost py-1 px-3" style="font-size:13px">Decline</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Active conversations -->
+    <div class="sh-card">
+      <div class="sh-card-header"><h2><i class="bi bi-chat-dots"></i> Messages</h2></div>
+      {% if rooms_with_data %}
+      <div class="inbox-list">
+        {% for item in rooms_with_data %}
+        <a href="{% url 'chat:room' room_id=item.room.pk %}" class="inbox-row {% if item.unread %}inbox-row-unread{% endif %}">
+          <div class="inbox-row-avatar">
+            <img src="{{ item.other.profile.profile_picture.url }}" class="sh-avatar-md" alt="">
+            {% if item.unread %}<span class="inbox-unread-dot"></span>{% endif %}
+          </div>
+          <div class="inbox-row-body">
+            <div class="inbox-row-name">
+              <strong>{{ item.other.username }}</strong>
+              {% if item.last %}<small>{{ item.last.created_at|timesince }} ago</small>{% endif %}
+            </div>
+            <div class="inbox-row-preview">
+              {% if item.last %}
+                {% if item.last.sender == request.user %}<span class="text-muted">You: </span>{% endif %}
+                {{ item.last.text|truncatechars:50 }}
+              {% else %}
+                <span class="text-muted">No messages yet</span>
+              {% endif %}
+            </div>
+          </div>
+          {% if item.unread %}
+          <span class="inbox-unread-badge">{{ item.unread }}</span>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="sh-empty-state">
+        <i class="bi bi-chat-dots"></i>
+        <h3>No conversations yet</h3>
+        <p>Send a chat request from someone's profile to start messaging.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static user_tags %}
+{% block title %}Feed — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+
+    <!-- ══ STORIES RAIL ══════════════════════════════════════════════════ -->
+    {% if stories %}
+    <div class="stories-rail">
+      <!-- Own story / add story -->
+      <a href="{% url 'stories:create' %}" class="story-bubble story-add-bubble">
+        <div class="story-avatar-ring no-ring">
+          <img src="{{ request.user.profile.profile_picture.url }}" alt="Add Story">
+          <span class="story-add-icon"><i class="bi bi-plus"></i></span>
+        </div>
+        <span class="story-label">Your story</span>
+      </a>
+
+      {% for bundle in stories %}
+      <a href="{% url 'stories:view' pk=bundle.first_story_id %}" class="story-bubble {% if bundle.all_seen %}story-seen{% endif %}">
+        <div class="story-avatar-ring">
+          <img src="{{ bundle.user.profile.profile_picture.url }}" alt="{{ bundle.user.username }}">
+        </div>
+        <span class="story-label">{{ bundle.user.username|truncatechars:10 }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="stories-rail">
+      <a href="{% url 'stories:create' %}" class="story-bubble story-add-bubble">
+        <div class="story-avatar-ring no-ring">
+          <img src="{{ request.user.profile.profile_picture.url }}" alt="Add Story">
+          <span class="story-add-icon"><i class="bi bi-plus"></i></span>
+        </div>
+        <span class="story-label">Your story</span>
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- ══ POSTS ═════════════════════════════════════════════════════════ -->
+    {% if not page_obj %}
+    <div class="sh-card sh-empty-feed">
+      <div class="sh-empty-state">
+        <i class="bi bi-people"></i>
+        <h3>Your feed is empty</h3>
+        <p>Follow people or explore all posts.</p>
+        <div class="d-flex gap-2 justify-content-center">
+          <a href="{% url 'posts:explore' %}" class="sh-btn-primary">Explore Posts</a>
+          <a href="{% url 'users:search' %}" class="sh-btn-outline">Find People</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% for post in page_obj %}
+      {% include 'partials/post_card.html' %}
+    {% endfor %}
+
+    {% if page_obj.has_other_pages %}
+    <div class="sh-pagination">
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="sh-page-btn"><i class="bi bi-chevron-left"></i> Newer</a>{% endif %}
+      <span class="sh-page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="sh-page-btn">Older <i class="bi bi-chevron-right"></i></a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+{% endblock %}

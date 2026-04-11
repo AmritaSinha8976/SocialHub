@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Login — SocialHub{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <!-- Brand -->
+        <div class="auth-brand">
+            <h1>SocialHub</h1>
+            <p>Share your world, connect with people.</p>
+        </div>
+
+        <!-- Form -->
+        <form method="POST" novalidate>
+            {% csrf_token %}
+
+            <div class="sh-form-group">
+                <label class="sh-label">Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="sh-field-error">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="sh-form-group">
+                <label class="sh-label">Password</label>
+                <div class="sh-input-wrap">
+                    {{ form.password }}
+                    <button type="button" class="sh-eye-toggle" onclick="togglePassword(this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                {% if form.non_field_errors %}
+                    <div class="sh-field-error">{{ form.non_field_errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="sh-btn-primary w-100">
+                Log in
+            </button>
+        </form>
+
+        <div class="auth-divider"><span>or</span></div>
+
+        <div class="auth-footer">
+            Don't have an account?
+            <a href="{% url 'users:register' %}">Sign up</a>
+        </div>
+    </div>
+
+    <!-- Side illustration -->
+    <div class="auth-illustration d-none d-lg-flex">
+        <div class="auth-illustration-inner">
+            <div class="auth-mockup">
+                <div class="mockup-post">
+                    <div class="mockup-avatar"></div>
+                    <div class="mockup-lines">
+                        <span></span><span></span>
+                    </div>
+                </div>
+                <div class="mockup-img"></div>
+                <div class="mockup-actions">
+                    <span class="mockup-heart">♥</span>
+                    <span class="mockup-comment">💬</span>
+                </div>
+            </div>
+            <h2>Share moments that matter.</h2>
+            <p>Connect with friends, discover new people, and share your story — all in one place.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(btn) {
+    const input = btn.previousElementSibling;
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

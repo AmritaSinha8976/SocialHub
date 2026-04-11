@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Follow Requests — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+    <div class="sh-card sh-form-card">
+      <div class="sh-card-header">
+        <h2><i class="bi bi-person-plus"></i> Follow Requests</h2>
+        <small class="text-muted">{{ pending_requests.count }} pending</small>
+      </div>
+
+      {% if pending_requests %}
+        {% for req in pending_requests %}
+        <div class="follow-req-row">
+          <a href="{% url 'users:profile' username=req.sender.username %}" class="follow-req-user">
+            <img src="{{ req.sender.profile.profile_picture.url }}" class="sh-avatar-md" alt="">
+            <div>
+              <strong>{{ req.sender.username }}</strong>
+              <small>{{ req.sender.get_full_name }}</small>
+              <span class="text-muted" style="font-size:11px">{{ req.created_at|timesince }} ago</span>
+            </div>
+          </a>
+          <div class="d-flex gap-2">
+            <form method="POST" action="{% url 'users:handle_follow_request' request_id=req.pk action='accept' %}">
+              {% csrf_token %}
+              <button type="submit" class="sh-btn-primary" style="padding:7px 16px;font-size:13px">
+                <i class="bi bi-check-lg"></i> Accept
+              </button>
+            </form>
+            <form method="POST" action="{% url 'users:handle_follow_request' request_id=req.pk action='reject' %}">
+              {% csrf_token %}
+              <button type="submit" class="sh-btn-ghost" style="padding:7px 16px;font-size:13px">
+                <i class="bi bi-x-lg"></i> Decline
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="sh-empty-state">
+          <i class="bi bi-person-check"></i>
+          <h3>No pending requests</h3>
+          <p>You're all caught up!</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+{% endblock %}

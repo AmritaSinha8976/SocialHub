@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static user_tags %}
+{% block title %}Saved Posts — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+    <div class="sh-card-header standalone">
+      <h2><i class="bi bi-bookmark-fill"></i> Saved Posts</h2>
+      <small class="text-muted">Only visible to you</small>
+    </div>
+
+    {% if saved %}
+    <div class="profile-post-grid">
+      {% for item in saved %}
+      <a href="{% url 'posts:post_detail' pk=item.post.pk %}" class="profile-grid-item">
+        {% if item.post.image %}
+          <img src="{{ item.post.image.url }}" alt="Post" loading="lazy">
+        {% else %}
+          <div class="profile-grid-text-post">
+            <p>{{ item.post.caption|truncatechars:80 }}</p>
+          </div>
+        {% endif %}
+        <div class="profile-grid-overlay">
+          <span><i class="bi bi-heart-fill"></i> {{ item.post.likes_count }}</span>
+          <span><i class="bi bi-chat-fill"></i> {{ item.post.comments_count }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="sh-empty-state">
+      <i class="bi bi-bookmark"></i>
+      <h3>No saved posts</h3>
+      <p>Tap the bookmark icon on any post to save it here.</p>
+    </div>
+    {% endif %}
+  </div>
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+{% endblock %}

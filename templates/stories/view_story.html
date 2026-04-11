@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ story.author.username }}'s Story{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sh-main { background:#000; }
+  body { overflow:hidden; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sv-outer">
+  <div class="sv-wrap">
+
+    <!-- Progress bar -->
+    <div class="sv-progress-bar"><div class="sv-progress-fill" id="svProgress"></div></div>
+
+    <!-- Author header -->
+    <div class="sv-header-row">
+      <a href="{% url 'users:profile' username=story.author.username %}" class="sv-author-link">
+        <img src="{{ story.author.profile.profile_picture.url }}" class="sv-author-pic" alt="">
+        <div>
+          <strong>{{ story.author.username }}</strong>
+          <small>{{ story.created_at|timesince }} ago</small>
+        </div>
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        {% if request.user == story.author %}
+        <form method="POST" action="{% url 'stories:delete' pk=story.pk %}">
+          {% csrf_token %}
+          <button class="sv-action-btn" onclick="return confirm('Delete story?')"><i class="bi bi-trash"></i></button>
+        </form>
+        {% endif %}
+        <a href="{% url 'posts:feed' %}" class="sv-action-btn"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </div>
+
+    <!-- Story body -->
+    <div class="sv-body {% if story.filter_name != 'none' %}filter-{{ story.filter_name }}{% endif %}"
+         style="background:{% if story.bg_gradient %}linear-gradient({{ story.bg_gradient }}){% else %}{{ story.bg_color }}{% endif %}">
+
+      {% if story.image %}<img src="{{ story.image.url }}" alt="" class="sv-image">{% endif %}
+
+      <!-- Text overlay -->
+      {% if story.caption %}
+      <div class="sv-text-overlay"
+           style="color:{{ story.text_color }};
+                  font-size:{{ story.text_size }}px;
+                  text-align:{{ story.text_align }};
+                  {% if story.text_style == 'bold' %}font-weight:700;{% endif %}
+                  {% if story.text_style == 'italic' %}font-style:italic;{% endif %}
+                  {% if story.text_style == 'shadow' %}text-shadow:2px 2px 6px rgba(0,0,0,0.9);{% endif %}
+                  {% if story.text_style == 'neon' %}text-shadow:0 0 10px {{ story.text_color }},0 0 20px {{ story.text_color }};{% endif %}">
+        {{ story.caption }}
+      </div>
+      {% endif %}
+
+
+      <!-- Stickers -->
+      {% for sticker in stickers %}
+      <div class="sv-sticker" style="left:{{ sticker.x }}%;top:{{ sticker.y }}%;transform:translate(-50%,-50%)">
+        {{ sticker.emoji }}
+      </div>
+      {% endfor %}
+
+      <!-- Poll -->
+      {% if story.poll_question %}
+      <div class="sv-poll">
+        <p class="sv-poll-q">{{ story.poll_question }}</p>
+        {% with total=poll_a_count|add:poll_b_count %}
+        <form class="sv-poll-form" data-story="{{ story.pk }}" method="POST" action="{% url 'stories:vote_poll' pk=story.pk %}">
+          {% csrf_token %}
+          <button type="submit" name="choice" value="a"
+                  class="sv-poll-opt {% if user_poll_vote == 'a' %}voted{% endif %}">
+            {{ story.poll_option_a|default:"Yes" }}
+            {% if user_poll_vote %}<span class="sv-poll-pct">{{ poll_a_count }} votes</span>{% endif %}
+          </button>
+          <button type="submit" name="choice" value="b"
+                  class="sv-poll-opt {% if user_poll_vote == 'b' %}voted{% endif %}">
+            {{ story.poll_option_b|default:"No" }}
+            {% if user_poll_vote %}<span class="sv-poll-pct">{{ poll_b_count }} votes</span>{% endif %}
+          </button>
+        </form>
+        {% endwith %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Navigation arrows -->
+    <div class="sv-nav">
+      {% if prev_id %}<a href="{% url 'stories:view' pk=prev_id %}" class="sv-nav-btn sv-nav-prev"><i class="bi bi-chevron-left"></i></a>{% endif %}
+      {% if next_id %}<a href="{% url 'stories:view' pk=next_id %}" class="sv-nav-btn sv-nav-next"><i class="bi bi-chevron-right"></i></a>{% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="sv-footer">
+      <!-- Like -->
+      <form class="sv-like-form" method="POST" action="{% url 'stories:like' pk=story.pk %}" data-story="{{ story.pk }}">
+        {% csrf_token %}
+        <button type="submit" class="sv-like-btn {% if is_liked %}liked{% endif %}">
+          <i class="bi {% if is_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+          <span class="sv-like-count">{{ story.story_likes.count }}</span>
+        </button>
+      </form>
+
+      <!-- Viewers count (author only) -->
+      {% if request.user == story.author %}
+      <button class="sv-action-btn" data-bs-toggle="modal" data-bs-target="#viewersModal" style="color:#fff">
+        <i class="bi bi-eye"></i> {{ story.views.count }}
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Viewers modal -->
+{% if request.user == story.author %}
+<div class="modal fade" id="viewersModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable sh-modal">
+    <div class="modal-content">
+      <div class="modal-header sh-modal-header">
+        <h5 class="modal-title"><i class="bi bi-eye"></i> Viewers ({{ story.views.count }})</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body sh-modal-body">
+        {% for v in viewers %}
+        <a href="{% url 'users:profile' username=v.viewer.username %}" class="sh-user-row">
+          <img src="{{ v.viewer.profile.profile_picture.url }}" class="sh-user-row-pic" alt="">
+          <div><strong>{{ v.viewer.username }}</strong><small>{{ v.viewed_at|timesince }} ago</small></div>
+        </a>
+        {% empty %}<p class="text-center py-3 text-muted">No views yet.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.sv-outer { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#000; }
+.sv-wrap  { position:relative; width:420px; max-width:100vw; }
+.sv-progress-bar { height:3px; background:rgba(255,255,255,0.3); border-radius:2px; overflow:hidden; margin:12px 12px 0; }
+.sv-progress-fill { height:100%; background:#fff; width:0; border-radius:2px; }
+.sv-header-row { display:flex; align-items:center; justify-content:space-between; padding:12px; }
+.sv-author-link { display:flex; align-items:center; gap:10px; color:#fff !important; text-decoration:none !important; }
+.sv-author-pic  { width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.5); }
+.sv-author-link strong { font-size:14px; color:#fff; }
+.sv-author-link small  { font-size:11px; color:rgba(255,255,255,0.7); }
+.sv-action-btn { background:rgba(255,255,255,0.15); border:none; color:#fff; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; text-decoration:none; transition:background .2s; }
+.sv-action-btn:hover { background:rgba(255,255,255,0.3); color:#fff; }
+.sv-body { position:relative; border-radius:20px; overflow:hidden; aspect-ratio:9/16; display:flex; align-items:center; justify-content:center; }
+.sv-image { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.sv-text-overlay { position:absolute; bottom:25%; left:0; right:0; padding:0 20px; word-break:break-word; z-index:2; }
+.sv-music-tag { position:absolute; bottom:32%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); color:#fff; border-radius:20px; padding:8px 14px; display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; white-space:nowrap; z-index:2; }
+.sv-sticker { position:absolute; font-size:40px; z-index:3; pointer-events:none; }
+.sv-poll { position:absolute; bottom:20%; left:10%; right:10%; background:rgba(255,255,255,0.15); backdrop-filter:blur(12px); border-radius:16px; padding:16px; color:#fff; z-index:3; }
+.sv-poll-q { font-size:15px; font-weight:700; text-align:center; margin-bottom:10px; }
+.sv-poll-form { display:flex; gap:8px; }
+.sv-poll-opt { flex:1; background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.3); border-radius:10px; padding:10px; color:#fff; font-weight:600; font-size:13px; cursor:pointer; transition:all .2s; display:flex; flex-direction:column; align-items:center; }
+.sv-poll-opt.voted, .sv-poll-opt:hover { background:rgba(255,255,255,0.35); }
+.sv-poll-pct { font-size:11px; opacity:0.8; margin-top:3px; }
+.sv-nav { position:absolute; top:50%; left:0; right:0; transform:translateY(-50%); display:flex; justify-content:space-between; pointer-events:none; padding:0 8px; }
+.sv-nav-btn { pointer-events:all; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; text-decoration:none; font-size:18px; }
+.sv-nav-btn:hover { background:rgba(255,255,255,0.3); color:#fff; }
+.sv-footer { display:flex; align-items:center; justify-content:space-between; padding:14px 12px; }
+.sv-like-btn { background:none; border:none; color:#fff; display:flex; align-items:center; gap:6px; font-size:22px; cursor:pointer; }
+.sv-like-btn.liked { color:#ff4d6d; }
+.sv-like-count { font-size:14px; font-weight:600; }
+</style>
+
+<script>
+// Progress bar auto-advance
+const fill = document.getElementById('svProgress');
+let start = null;
+const duration = 15000;
+{% if next_id %}const nextUrl = "{% url 'stories:view' pk=next_id %}";{% else %}const nextUrl = null;{% endif %}
+
+(function tick(ts) {
+  if (!start) start = ts;
+  const pct = Math.min(((ts - start) / duration) * 100, 100);
+  fill.style.width = pct + '%';
+  if (pct < 100) requestAnimationFrame(tick);
+  else if (nextUrl) window.location.href = nextUrl;
+})();
+
+// AJAX story like
+document.querySelector('.sv-like-form')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const csrf = document.cookie.split('; ').find(r=>r.startsWith('csrftoken='))?.split('=')[1]||'';
+  const res  = await fetch(e.target.action, {method:'POST',headers:{'X-Requested-With':'XMLHttpRequest','X-CSRFToken':csrf}});
+  const data = await res.json();
+  const btn  = e.target.querySelector('.sv-like-btn');
+  btn.classList.toggle('liked', data.is_liked);
+  btn.querySelector('i').className = data.is_liked ? 'bi bi-heart-fill' : 'bi bi-heart';
+  btn.querySelector('.sv-like-count').textContent = data.likes_count;
+});
+
+// AJAX poll vote
+document.querySelector('.sv-poll-form')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const csrf   = document.cookie.split('; ').find(r=>r.startsWith('csrftoken='))?.split('=')[1]||'';
+  const choice = e.submitter?.value;
+  const fd     = new FormData(); fd.append('choice', choice); fd.append('csrfmiddlewaretoken', csrf);
+  const res    = await fetch(e.target.action, {method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:fd});
+  const data   = await res.json();
+  document.querySelectorAll('.sv-poll-opt').forEach((btn,i) => {
+    const c = i === 0 ? 'a' : 'b';
+    btn.classList.toggle('voted', data.voted === c);
+    const pct = btn.querySelector('.sv-poll-pct');
+    if (pct) pct.textContent = data[c] + ' votes';
+    else {
+      const span = document.createElement('span');
+      span.className = 'sv-poll-pct'; span.textContent = data[c] + ' votes';
+      btn.appendChild(span);
+    }
+  });
+});
+</script>
+{% endblock %}

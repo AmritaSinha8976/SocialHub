@@ -1,0 +1,28 @@
+# ============================================================
+# socialhub.service — systemd unit file for VPS deployment
+# Place at: /etc/systemd/system/socialhub.service
+# Then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable socialhub
+#   sudo systemctl start socialhub
+# ============================================================
+
+[Unit]
+Description=SocialHub Django App (Gunicorn)
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/socialhub
+EnvironmentFile=/home/ubuntu/socialhub/.env
+ExecStart=/home/ubuntu/socialhub/venv/bin/gunicorn \
+          --workers 3 \
+          --bind 127.0.0.1:8000 \
+          --access-logfile /var/log/socialhub/access.log \
+          --error-logfile  /var/log/socialhub/error.log \
+          socialhub.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

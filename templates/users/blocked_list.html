@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Blocked Users — SocialHub{% endblock %}
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+    <div class="sh-card sh-form-card">
+      <div class="sh-card-header"><h2><i class="bi bi-slash-circle"></i> Blocked Users</h2></div>
+      {% if blocked_list %}
+        {% for b in blocked_list %}
+        <div class="follow-req-row">
+          <div class="follow-req-user">
+            <img src="{{ b.blocked.profile.profile_picture.url }}" class="sh-avatar-md" alt="">
+            <div>
+              <strong>{{ b.blocked.username }}</strong>
+              <small>Blocked {{ b.created_at|timesince }} ago</small>
+            </div>
+          </div>
+          <form method="POST" action="{% url 'users:toggle_block' username=b.blocked.username %}">
+            {% csrf_token %}
+            <button type="submit" class="sh-btn-sm-outline">Unblock</button>
+          </form>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="sh-empty-state">
+          <i class="bi bi-people"></i>
+          <h3>No blocked users</h3>
+          <p>You haven't blocked anyone.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+{% endblock %}

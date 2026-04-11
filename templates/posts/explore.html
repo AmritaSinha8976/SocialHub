@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Explore — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+    <div class="sh-center">
+
+        <div class="sh-card-header standalone">
+            <h2><i class="bi bi-compass"></i> Explore</h2>
+            <small>Discover posts from the entire community</small>
+        </div>
+
+        {% if page_obj %}
+        <div class="explore-grid">
+            {% for post in page_obj %}
+            <a href="{% url 'posts:post_detail' pk=post.pk %}" class="explore-grid-item">
+                {% if post.image %}
+                    <img src="{{ post.image.url }}" alt="Post" loading="lazy">
+                {% else %}
+                    <div class="explore-text-post">
+                        <p>{{ post.caption|truncatechars:100 }}</p>
+                        <small>— {{ post.author.username }}</small>
+                    </div>
+                {% endif %}
+                <div class="explore-overlay">
+                    <span><i class="bi bi-heart-fill"></i> {{ post.likes_count }}</span>
+                    <span><i class="bi bi-chat-fill"></i> {{ post.comments_count }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="sh-pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="sh-page-btn">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            {% endif %}
+            <span class="sh-page-info">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="sh-page-btn">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="sh-empty-state">
+            <i class="bi bi-camera"></i>
+            <h3>No posts yet</h3>
+            <p>Be the first to share something!</p>
+            <a href="{% url 'posts:create_post' %}" class="sh-btn-primary">Create Post</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <aside class="sh-sidebar">
+        {% include 'partials/sidebar_user.html' %}
+    </aside>
+</div>
+{% endblock %}

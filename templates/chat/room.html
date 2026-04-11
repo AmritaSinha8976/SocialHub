@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Chat with {{ other.username }} — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+    <div class="chat-room-card">
+
+      <!-- Chat header -->
+      <div class="chat-room-header">
+        <a href="{% url 'chat:inbox' %}" class="chat-back-btn"><i class="bi bi-arrow-left"></i></a>
+        <a href="{% url 'users:profile' username=other.username %}" class="chat-room-user">
+          <img src="{{ other.profile.profile_picture.url }}" class="sh-avatar-sm" alt="">
+          <strong>{{ other.username }}</strong>
+        </a>
+      </div>
+
+      <!-- Messages area -->
+      <div class="chat-messages" id="chatMessages">
+        {% for msg in messages %}
+        <div class="chat-bubble-wrap {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}"
+             id="msg-{{ msg.pk }}" data-id="{{ msg.pk }}">
+          {% if msg.sender != request.user %}
+          <img src="{{ msg.sender.profile.profile_picture.url }}" class="chat-bubble-pic" alt="">
+          {% endif %}
+          <div class="chat-bubble">
+            {{ msg.text }}
+            <span class="chat-bubble-time">{{ msg.created_at|date:"H:i" }}</span>
+          </div>
+        </div>
+        {% empty %}
+        <div class="chat-empty" id="chatEmpty">
+          <i class="bi bi-chat"></i>
+          <p>Say hello to {{ other.username }}!</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Message input -->
+      <form class="chat-input-form" id="chatForm" data-room-id="{{ room.pk }}">
+        {% csrf_token %}
+        {{ form.text }}
+        <button type="submit" class="chat-send-btn"><i class="bi bi-send-fill"></i></button>
+      </form>
+    </div>
+  </div>
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+
+<script>
+const chatMessages = document.getElementById('chatMessages');
+const chatForm     = document.getElementById('chatForm');
+const input        = chatForm.querySelector('input[name="text"]');
+const roomId       = chatForm.dataset.roomId;
+const myUsername   = "{{ request.user.username }}";
+let   lastId       = {{ messages.last.pk|default:0 }};
+
+// Scroll to bottom
+function scrollBottom() {
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+scrollBottom();
+
+// Send message via AJAX
+chatForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  const csrf = document.cookie.split('; ').find(r=>r.startsWith('csrftoken='))?.split('=')[1]||'';
+  input.value = '';
+
+  const fd = new FormData();
+  fd.append('text', text);
+  fd.append('csrfmiddlewaretoken', csrf);
+
+  const res  = await fetch(`/chat/${roomId}/`, {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+    body: fd,
+  });
+  const data = await res.json();
+  appendMessage(data, true);
+  lastId = data.id;
+  document.getElementById('chatEmpty')?.remove();
+});
+
+function appendMessage(msg, mine) {
+  const wrap = document.createElement('div');
+  wrap.className = `chat-bubble-wrap ${mine ? 'mine' : 'theirs'}`;
+  wrap.id        = `msg-${msg.id}`;
+  wrap.dataset.id = msg.id;
+  const otherPic = "{{ other.profile.profile_picture.url }}";
+  wrap.innerHTML = `
+    ${!mine ? `<img src="${otherPic}" class="chat-bubble-pic" alt="">` : ''}
+    <div class="chat-bubble">
+      ${escHtml(msg.text)}
+      <span class="chat-bubble-time">${msg.created_at}</span>
+    </div>`;
+  chatMessages.appendChild(wrap);
+  scrollBottom();
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Poll for new messages every 3 seconds
+async function pollMessages() {
+  try {
+    const res  = await fetch(`/chat/${roomId}/?after=${lastId}`, {
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+    });
+    const data = await res.json();
+    data.messages.forEach(msg => {
+      if (!document.getElementById(`msg-${msg.id}`)) {
+        appendMessage(msg, msg.sender === myUsername);
+        lastId = msg.id;
+        document.getElementById('chatEmpty')?.remove();
+      }
+    });
+  } catch (e) { /* network error — silent */ }
+}
+setInterval(pollMessages, 3000);
+</script>
+{% endblock %}

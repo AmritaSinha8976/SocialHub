@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}New Post — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+    <div class="sh-center">
+        <div class="sh-card sh-form-card">
+            <div class="sh-card-header">
+                <h2><i class="bi bi-plus-square"></i> Create Post</h2>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" novalidate id="createPostForm">
+                {% csrf_token %}
+
+                <!-- Image Upload Zone -->
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-placeholder" id="uploadPlaceholder">
+                        <i class="bi bi-image"></i>
+                        <h4>Drag & drop or click to upload</h4>
+                        <p>Supports JPG, PNG, GIF, WEBP</p>
+                        <label for="postImageInput" class="sh-btn-outline" style="cursor:pointer">
+                            Choose File
+                        </label>
+                    </div>
+                    <img src="" alt="Preview" class="upload-preview" id="imagePreview">
+                    <button type="button" class="upload-remove" id="removeImage" style="display:none">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                    <!-- The actual hidden file input -->
+                    <div style="display:none">{{ form.image }}</div>
+                </div>
+
+                {% if form.image.errors %}
+                    <div class="sh-field-error">{{ form.image.errors.0 }}</div>
+                {% endif %}
+
+                <!-- Caption -->
+                <div class="sh-form-group mt-3">
+                    <label class="sh-label">Caption</label>
+                    {{ form.caption }}
+                    <div class="sh-char-counter">
+                        <span id="captionCount">0</span> / 2200
+                    </div>
+                </div>
+                {% if form.caption.errors %}
+                    <div class="sh-field-error">{{ form.caption.errors.0 }}</div>
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                    <div class="sh-field-error">{{ form.non_field_errors.0 }}</div>
+                {% endif %}
+
+                <div class="d-flex gap-3 mt-4">
+                    <button type="submit" class="sh-btn-primary">
+                        <i class="bi bi-send"></i> Share Post
+                    </button>
+                    <a href="{% url 'posts:feed' %}" class="sh-btn-ghost">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <aside class="sh-sidebar">
+        {% include 'partials/sidebar_user.html' %}
+    </aside>
+</div>
+
+<script>
+const imageInput = document.getElementById('postImageInput');
+const imagePreview = document.getElementById('imagePreview');
+const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+const removeBtn = document.getElementById('removeImage');
+const uploadZone = document.getElementById('uploadZone');
+const captionTextarea = document.querySelector('textarea[name="caption"]');
+const captionCount = document.getElementById('captionCount');
+
+// File input change
+imageInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+            uploadPlaceholder.style.display = 'none';
+            removeBtn.style.display = 'block';
+        };
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+
+// Remove image
+removeBtn.addEventListener('click', () => {
+    imageInput.value = '';
+    imagePreview.src = '';
+    imagePreview.style.display = 'none';
+    uploadPlaceholder.style.display = 'flex';
+    removeBtn.style.display = 'none';
+});
+
+// Drag and drop
+uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        imageInput.files = dt.files;
+        imageInput.dispatchEvent(new Event('change'));
+    }
+});
+
+// Caption character counter
+captionTextarea.addEventListener('input', function() {
+    captionCount.textContent = this.value.length;
+});
+</script>
+{% endblock %}

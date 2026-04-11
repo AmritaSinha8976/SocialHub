@@ -1,0 +1,113 @@
+{% load static user_tags %}
+<article class="sh-post-card" id="post-{{ post.pk }}">
+
+  <!-- Header -->
+  <div class="post-card-header">
+    <a href="{% url 'users:profile' username=post.author.username %}" class="post-author-link">
+      <img src="{{ post.author.profile.profile_picture.url }}" alt="{{ post.author.username }}" class="post-author-pic">
+      <div>
+        <strong>{{ post.author.username }}</strong>
+        {% if post.author.profile.location %}<small>{{ post.author.profile.location }}</small>{% endif %}
+      </div>
+    </a>
+
+    <div class="post-menu dropdown">
+      <button class="post-menu-btn" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+      <ul class="dropdown-menu dropdown-menu-end sh-dropdown">
+        <li><a class="dropdown-item" href="{% url 'posts:post_detail' pk=post.pk %}"><i class="bi bi-eye"></i> View Post</a></li>
+        {% if user == post.author %}
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{% url 'posts:delete_post' pk=post.pk %}"><i class="bi bi-trash"></i> Delete</a></li>
+        {% else %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="POST" action="{% url 'users:toggle_block' username=post.author.username %}">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item text-danger" style="background:none;border:none;width:100%;text-align:left">
+              <i class="bi bi-slash-circle"></i> Block {{ post.author.username }}
+            </button>
+          </form>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Image -->
+  {% if post.image %}
+  <a href="{% url 'posts:post_detail' pk=post.pk %}">
+    <div class="post-image-wrap">
+      <img src="{{ post.image.url }}" alt="Post by {{ post.author.username }}" class="post-image" loading="lazy">
+    </div>
+  </a>
+  {% endif %}
+
+  <!-- Actions -->
+  <div class="post-actions">
+    {% with is_liked=post|is_liked_by:user %}
+    <button class="post-action-btn like-btn {% if is_liked %}liked{% endif %}"
+            data-post-id="{{ post.pk }}" aria-label="Like">
+      <i class="bi {% if is_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+    </button>
+    {% endwith %}
+
+    <a href="{% url 'posts:post_detail' pk=post.pk %}#comments" class="post-action-btn" title="Comment">
+      <i class="bi bi-chat"></i>
+    </a>
+
+    <!-- Bookmark / Save -->
+    {% with is_saved=post|is_saved_by:user %}
+    <button class="post-action-btn save-btn {% if is_saved %}saved{% endif %}"
+            data-post-id="{{ post.pk }}" aria-label="Save" style="margin-left:auto">
+      <i class="bi {% if is_saved %}bi-bookmark-fill{% else %}bi-bookmark{% endif %}"></i>
+    </button>
+    {% endwith %}
+  </div>
+
+  <!-- Likes -->
+  <div class="post-likes">
+    <span class="like-count" id="likes-{{ post.pk }}">{{ post.likes_count }}</span>
+    {{ post.likes_count|pluralize:"like,likes" }}
+  </div>
+
+  <!-- Caption -->
+  {% if post.caption %}
+  <div class="post-caption">
+    <strong>{{ post.author.username }}</strong>
+    {{ post.caption|truncatechars:150 }}
+    {% if post.caption|length > 150 %}
+      <a href="{% url 'posts:post_detail' pk=post.pk %}" class="post-more">more</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Comment previews -->
+  {% with post.comments.all|slice:":2" as preview_comments %}
+  {% if preview_comments %}
+  <div class="post-comment-preview">
+    {% for comment in preview_comments %}
+    <div class="comment-preview-line">
+      <strong>{{ comment.author.username }}</strong>
+      <span>{{ comment.text|truncatechars:80 }}</span>
+    </div>
+    {% endfor %}
+    {% if post.comments_count > 2 %}
+    <a href="{% url 'posts:post_detail' pk=post.pk %}#comments" class="post-view-all-comments">
+      View all {{ post.comments_count }} comments
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Inline comment form -->
+  <form class="post-comment-form" data-post-id="{{ post.pk }}">
+    {% csrf_token %}
+    <input type="text" class="post-comment-input" placeholder="Add a comment…" maxlength="1000" autocomplete="off">
+    <button type="submit" class="post-comment-submit">Post</button>
+  </form>
+
+  <div class="post-timestamp">
+    <a href="{% url 'posts:post_detail' pk=post.pk %}">{{ post.created_at|timesince }} ago</a>
+  </div>
+</article>

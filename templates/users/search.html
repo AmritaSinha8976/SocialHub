@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Search — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+
+    <!-- Dedicated search bar (visible always) -->
+    <form action="{% url 'users:search' %}" method="GET" class="search-page-form">
+      <div class="search-page-input-wrap">
+        <i class="bi bi-search search-page-icon"></i>
+        <input type="text" name="q" class="search-page-input"
+               placeholder="Search people..." value="{{ query }}" autofocus autocomplete="off">
+        {% if query %}
+        <a href="{% url 'users:search' %}" class="search-clear-btn"><i class="bi bi-x-circle-fill"></i></a>
+        {% endif %}
+      </div>
+      <button type="submit" class="sh-btn-primary">Search</button>
+    </form>
+
+    <div class="sh-card">
+      {% if query %}
+        <div class="sh-card-header">
+          <h2>Results for "{{ query }}"</h2>
+        </div>
+      {% endif %}
+
+      {% if users %}
+        <div class="search-results">
+          {% for u in users %}
+          <div class="search-user-card">
+            <a href="{% url 'users:profile' username=u.username %}" class="search-user-left">
+              <img src="{{ u.profile.profile_picture.url }}" alt="{{ u.username }}" class="sh-avatar-md">
+              <div>
+                <strong>{{ u.username }}</strong>
+                <small>{{ u.get_full_name }}</small>
+              </div>
+            </a>
+            {% if user.is_authenticated and u != user %}
+            <form method="POST" action="{% url 'users:toggle_follow' username=u.username %}">
+              {% csrf_token %}
+              <button type="submit" class="sh-btn-sm-outline">Follow</button>
+            </form>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      {% elif query %}
+        <div class="sh-empty-state">
+          <i class="bi bi-person-x"></i>
+          <h3>No users found</h3>
+          <p>Try a different search term.</p>
+        </div>
+      {% else %}
+        <div class="sh-empty-state">
+          <i class="bi bi-people"></i>
+          <h3>Discover People</h3>
+          <p>Search by username to find people to follow.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+{% endblock %}

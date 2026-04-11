@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Notifications — SocialHub{% endblock %}
+
+{% block content %}
+<div class="sh-layout">
+  <div class="sh-center">
+    <div class="sh-card">
+      <div class="sh-card-header"><h2><i class="bi bi-bell"></i> Notifications</h2></div>
+
+      {% if notifications %}
+      <div class="notif-list">
+        {% for n in notifications %}
+        {# Wrap entire row in a link to the notification's URL #}
+        <a href="{{ n.url|default:'#' }}" class="notif-row-link {% if not n.is_read %}notif-unread{% endif %}">
+          <img src="{{ n.actor.profile.profile_picture.url }}" class="notif-pic" alt="">
+          <div class="notif-body">
+            <p class="notif-msg"><strong>{{ n.actor.username }}</strong> {{ n.message|cut:n.actor.username|slice:"1:" }}</p>
+            <small class="notif-time">{{ n.created_at|timesince }} ago</small>
+          </div>
+          <div class="notif-icon-col">
+            {% if n.notif_type == 'follow_request' or n.notif_type == 'follow_accepted' %}
+              <i class="bi bi-person-plus-fill text-brand"></i>
+            {% elif n.notif_type == 'chat_request' or n.notif_type == 'chat_accepted' %}
+              <i class="bi bi-chat-fill text-brand"></i>
+            {% elif 'like' in n.notif_type %}
+              <i class="bi bi-heart-fill text-danger"></i>
+            {% elif n.notif_type == 'comment' %}
+              <i class="bi bi-chat-square-text-fill text-brand"></i>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="sh-empty-state">
+        <i class="bi bi-bell-slash"></i>
+        <h3>No notifications yet</h3>
+        <p>When people interact with you, you'll see it here.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if pending_follow_requests_count %}
+    <div class="sh-card">
+      <div class="sh-card-header">
+        <h2><i class="bi bi-person-plus"></i> Follow Requests
+          <span class="sh-badge" style="position:static;margin-left:8px">{{ pending_follow_requests_count }}</span>
+        </h2>
+      </div>
+      <div style="padding:12px 20px">
+        <a href="{% url 'users:follow_requests' %}" class="sh-btn-primary">View Requests</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <aside class="sh-sidebar">{% include 'partials/sidebar_user.html' %}</aside>
+</div>
+{% endblock %}

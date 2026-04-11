@@ -1,0 +1,548 @@
+{% extends 'base.html' %}
+{% block title %}Create Story — SocialHub{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { overflow: hidden; }
+  .sh-main { background: #0a0a0a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="story-creator">
+
+  <!-- ── LEFT TOOLBAR ─────────────────────────────────── -->
+  <div class="sc-toolbar">
+    <a href="{% url 'posts:feed' %}" class="sc-toolbar-btn sc-close-btn" title="Close">
+      <i class="bi bi-x-lg"></i>
+    </a>
+    <div class="sc-toolbar-group">
+      <button type="button" class="sc-toolbar-btn" id="btnUpload" title="Upload Photo">
+        <i class="bi bi-image"></i><span>Photo</span>
+      </button>
+      <button type="button" class="sc-toolbar-btn" id="btnText" title="Add Text">
+        <i class="bi bi-type"></i><span>Text</span>
+      </button>
+      <button type="button" class="sc-toolbar-btn" id="btnSticker" title="Stickers">
+        <i class="bi bi-emoji-smile"></i><span>Sticker</span>
+      </button>
+      <button type="button" class="sc-toolbar-btn" id="btnFilter" title="Filter">
+        <i class="bi bi-stars"></i><span>Filter</span>
+      </button>
+      <button type="button" class="sc-toolbar-btn" id="btnBg" title="Background">
+        <i class="bi bi-palette"></i><span>BG</span>
+      </button>
+      <button type="button" class="sc-toolbar-btn" id="btnPoll" title="Poll">
+        <i class="bi bi-bar-chart-line"></i><span>Poll</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── CANVAS / PREVIEW ─────────────────────────────── -->
+  <div class="sc-canvas" id="scCanvas">
+
+    <!-- Background layer -->
+    <div class="sc-bg-layer" id="scBg"></div>
+
+    <!-- Image layer -->
+    <img class="sc-image-layer" id="scImage" src="" alt="" style="display:none">
+
+    <!-- Filter overlay -->
+    <div class="sc-filter-layer" id="scFilterLayer"></div>
+
+    <!-- Stickers container -->
+    <div class="sc-stickers-layer" id="scStickersLayer"></div>
+
+    <!-- Text overlay preview -->
+    <div class="sc-text-overlay" id="scTextOverlay" style="display:none"></div>
+
+    <!-- Music tag -->
+    <div class="sc-music-tag" id="scMusicTag" style="display:none">
+      <i class="bi bi-music-note-beamed"></i>
+      <span id="scMusicLabel">Song · Artist</span>
+    </div>
+
+    <!-- Poll preview -->
+    <div class="sc-poll-preview" id="scPollPreview" style="display:none">
+      <p class="sc-poll-q" id="scPollQ"></p>
+      <div class="sc-poll-options">
+        <div class="sc-poll-opt" id="scPollA"></div>
+        <div class="sc-poll-opt" id="scPollB"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PANELS ────────────────────────────────────────── -->
+
+  <!-- Text panel -->
+  <div class="sc-panel" id="panelText">
+    <div class="sc-panel-header"><span>Text</span><button class="sc-panel-close" data-panel="panelText"><i class="bi bi-x"></i></button></div>
+    <div class="sc-panel-body">
+      <input type="text" id="txtCaption" placeholder="Type something…" maxlength="300" class="sc-text-input">
+      <div class="sc-option-row">
+        <label>Color</label>
+        <input type="color" id="txtColor" value="#ffffff">
+      </div>
+      <div class="sc-option-row">
+        <label>Size</label>
+        <input type="range" id="txtSize" min="12" max="80" value="24">
+        <span id="txtSizeVal">24px</span>
+      </div>
+      <div class="sc-option-row">
+        <label>Align</label>
+        <div class="sc-btn-group">
+          <button class="sc-opt-btn active" data-align="left"><i class="bi bi-text-left"></i></button>
+          <button class="sc-opt-btn active" data-align="center"><i class="bi bi-text-center"></i></button>
+          <button class="sc-opt-btn" data-align="right"><i class="bi bi-text-right"></i></button>
+        </div>
+      </div>
+      <div class="sc-option-row">
+        <label>Style</label>
+        <div class="sc-btn-group">
+          <button class="sc-opt-btn active" data-style="normal">Aa</button>
+          <button class="sc-opt-btn" data-style="bold"><strong>Aa</strong></button>
+          <button class="sc-opt-btn" data-style="italic"><em>Aa</em></button>
+          <button class="sc-opt-btn" data-style="shadow" style="text-shadow:2px 2px 4px rgba(0,0,0,0.8)">Aa</button>
+          <button class="sc-opt-btn" data-style="neon" style="color:#0ff;text-shadow:0 0 8px #0ff">Aa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter panel -->
+  <div class="sc-panel" id="panelFilter">
+    <div class="sc-panel-header"><span>Filters</span><button class="sc-panel-close" data-panel="panelFilter"><i class="bi bi-x"></i></button></div>
+    <div class="sc-panel-body sc-filter-grid">
+      {% for val, label in form.filter_name.field.choices %}
+      <button class="sc-filter-btn {% if val == 'none' %}active{% endif %}"
+              data-filter="{{ val }}" style="filter:{{ val }}">
+        <div class="sc-filter-thumb filter-{{ val }}"></div>
+        <span>{{ label }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Background panel -->
+  <div class="sc-panel" id="panelBg">
+    <div class="sc-panel-header"><span>Background</span><button class="sc-panel-close" data-panel="panelBg"><i class="bi bi-x"></i></button></div>
+    <div class="sc-panel-body">
+      <div class="sc-option-row"><label>Solid Color</label><input type="color" id="bgColor" value="#000000"></div>
+      <div class="sc-option-row"><label>Gradient Presets</label></div>
+      <div class="sc-gradient-grid" id="gradientGrid">
+        <button class="sc-grad-btn" data-grad="135deg,#f093fb,#f5576c" style="background:linear-gradient(135deg,#f093fb,#f5576c)"></button>
+        <button class="sc-grad-btn" data-grad="135deg,#4facfe,#00f2fe" style="background:linear-gradient(135deg,#4facfe,#00f2fe)"></button>
+        <button class="sc-grad-btn" data-grad="135deg,#43e97b,#38f9d7" style="background:linear-gradient(135deg,#43e97b,#38f9d7)"></button>
+        <button class="sc-grad-btn" data-grad="135deg,#fa709a,#fee140" style="background:linear-gradient(135deg,#fa709a,#fee140)"></button>
+        <button class="sc-grad-btn" data-grad="135deg,#a18cd1,#fbc2eb" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)"></button>
+        <button class="sc-grad-btn" data-grad="135deg,#ffecd2,#fcb69f" style="background:linear-gradient(135deg,#ffecd2,#fcb69f)"></button>
+        <button class="sc-grad-btn" data-grad="135deg,#667eea,#764ba2" style="background:linear-gradient(135deg,#667eea,#764ba2)"></button>
+        <button class="sc-grad-btn" data-grad="135deg,#0f0c29,#302b63,#24243e" style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticker panel -->
+  <div class="sc-panel" id="panelSticker">
+    <div class="sc-panel-header"><span>Stickers</span><button class="sc-panel-close" data-panel="panelSticker"><i class="bi bi-x"></i></button></div>
+    <div class="sc-panel-body">
+      <div class="sc-sticker-grid" id="stickerGrid">
+        {% for emoji in "😀😂😍🔥💯❤️🎉🌟😭🤔💪🙌🎵🌈☀️🌙⭐🦋🌸🍕🎂🏆🎯🚀💎👑🔮🌺🦄🎨" %}
+        <button class="sc-sticker-btn" data-emoji="{{ emoji }}">{{ emoji }}</button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Poll panel -->
+  <div class="sc-panel" id="panelPoll">
+    <div class="sc-panel-header"><span>Poll</span><button class="sc-panel-close" data-panel="panelPoll"><i class="bi bi-x"></i></button></div>
+    <div class="sc-panel-body">
+      <div class="sh-form-group">
+        <label class="sh-label" style="color:#fff">Question</label>
+        <input type="text" id="pollQ" placeholder="Ask a question…" maxlength="120" class="sc-text-input">
+      </div>
+      <div class="sh-form-group">
+        <label class="sh-label" style="color:#fff">Option A</label>
+        <input type="text" id="pollA" placeholder="Yes" maxlength="60" class="sc-text-input" value="Yes">
+      </div>
+      <div class="sh-form-group">
+        <label class="sh-label" style="color:#fff">Option B</label>
+        <input type="text" id="pollB" placeholder="No" maxlength="60" class="sc-text-input" value="No">
+      </div>
+      <button class="sc-apply-btn" id="applyPoll"><i class="bi bi-check-lg"></i> Add Poll</button>
+    </div>
+  </div>
+
+  <!-- ── SHARE BUTTON + HIDDEN FORM ─────────────────── -->
+  <button class="sc-share-btn" id="scShareBtn">
+    <i class="bi bi-send-fill"></i> Share Story
+  </button>
+
+  <form method="POST" action="{% url 'stories:create' %}" enctype="multipart/form-data" id="scForm" style="display:none">
+    {% csrf_token %}
+    {{ form.image }}
+    <input type="hidden" name="caption"       id="fCaption">
+    <input type="hidden" name="text_color"    id="fTextColor"    value="#ffffff">
+    <input type="hidden" name="text_size"     id="fTextSize"     value="24">
+    <input type="hidden" name="text_align"    id="fTextAlign"    value="center">
+    <input type="hidden" name="text_style"    id="fTextStyle"    value="normal">
+    <input type="hidden" name="bg_color"      id="fBgColor"      value="#000000">
+    <input type="hidden" name="bg_gradient"   id="fBgGradient"   value="">
+    <input type="hidden" name="filter_name"   id="fFilter"       value="none">
+    <input type="hidden" name="stickers_json" id="fStickers"     value="[]">
+    <input type="hidden" name="poll_question" id="fPollQ"        value="">
+    <input type="hidden" name="poll_option_a" id="fPollA"        value="">
+    <input type="hidden" name="poll_option_b" id="fPollB"        value="">
+  </form>
+</div>
+
+<style>
+/* ── Story Creator Layout ── */
+.story-creator { display:flex; align-items:stretch; height:100vh; background:#0a0a0a; position:relative; overflow:hidden; }
+
+.sc-toolbar {
+  width:80px; background:#111; border-right:1px solid #222;
+  display:flex; flex-direction:column; align-items:center;
+  padding:16px 0; gap:8px; z-index:20; flex-shrink:0;
+}
+.sc-toolbar-btn {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  background:none; border:none; color:#ccc; cursor:pointer;
+  padding:10px 8px; border-radius:12px; transition:all .2s; width:68px;
+  font-size:11px;
+}
+.sc-toolbar-btn i { font-size:20px; }
+.sc-toolbar-btn:hover, .sc-toolbar-btn.active { background:#222; color:#fff; }
+.sc-close-btn { color:#aaa; margin-bottom:8px; }
+
+.sc-canvas {
+  flex:1; position:relative; display:flex; align-items:center; justify-content:center;
+  max-width:420px; margin:0 auto; aspect-ratio:9/16; overflow:hidden;
+  border-radius:20px; background:#000;
+}
+.sc-bg-layer { position:absolute; inset:0; transition:background .3s; }
+.sc-image-layer { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.sc-filter-layer { position:absolute; inset:0; pointer-events:none; transition:all .3s; }
+.sc-stickers-layer { position:absolute; inset:0; }
+.sc-text-overlay {
+  position:absolute; bottom:20%; left:0; right:0;
+  text-align:center; padding:0 20px; pointer-events:none;
+  word-break:break-word;
+}
+.sc-music-tag {
+  position:absolute; bottom:28%; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.5); backdrop-filter:blur(8px);
+  color:#fff; border-radius:20px; padding:8px 14px;
+  display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;
+  white-space:nowrap;
+}
+.sc-poll-preview {
+  position:absolute; bottom:20%; left:10%; right:10%;
+  background:rgba(255,255,255,0.15); backdrop-filter:blur(12px);
+  border-radius:16px; padding:16px; color:#fff;
+}
+.sc-poll-q { font-size:16px; font-weight:700; text-align:center; margin-bottom:12px; }
+.sc-poll-options { display:flex; gap:8px; }
+.sc-poll-opt { flex:1; background:rgba(255,255,255,0.2); border-radius:10px; padding:10px; text-align:center; font-weight:600; font-size:14px; }
+
+/* Draggable sticker */
+.sc-sticker-item {
+  position:absolute; font-size:40px; cursor:grab; user-select:none;
+  touch-action:none; transform-origin:center center;
+}
+.sc-sticker-item:active { cursor:grabbing; }
+
+/* Share button */
+.sc-share-btn {
+  position:fixed; bottom:30px; right:30px; z-index:50;
+  background:var(--brand,#E8421A); color:#fff; border:none;
+  border-radius:50px; padding:14px 28px; font-size:16px; font-weight:700;
+  display:flex; align-items:center; gap:8px; cursor:pointer;
+  box-shadow:0 4px 20px rgba(232,66,26,0.5); transition:transform .2s;
+}
+.sc-share-btn:hover { transform:scale(1.04); }
+
+/* Panels */
+.sc-panel {
+  position:fixed; right:0; top:0; bottom:0; width:300px;
+  background:#1a1a1a; border-left:1px solid #333;
+  z-index:30; transform:translateX(100%); transition:transform .3s ease;
+  display:flex; flex-direction:column;
+}
+.sc-panel.open { transform:translateX(0); }
+.sc-panel-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px; border-bottom:1px solid #333; color:#fff;
+  font-weight:700; font-size:15px;
+}
+.sc-panel-close {
+  background:none; border:none; color:#888; font-size:20px; cursor:pointer;
+}
+.sc-panel-close:hover { color:#fff; }
+.sc-panel-body { flex:1; overflow-y:auto; padding:16px; }
+.sc-option-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; color:#ccc; font-size:13px; }
+.sc-option-row label { width:55px; flex-shrink:0; }
+.sc-option-row input[type="color"] { width:36px; height:36px; border:none; border-radius:8px; cursor:pointer; padding:2px; }
+.sc-option-row input[type="range"] { flex:1; }
+.sc-text-input { width:100%; background:#2a2a2a; border:1.5px solid #444; border-radius:10px; color:#fff; padding:10px 14px; font-size:14px; outline:none; margin-bottom:10px; }
+.sc-text-input:focus { border-color:#E8421A; }
+.sc-btn-group { display:flex; gap:6px; flex-wrap:wrap; }
+.sc-opt-btn { background:#2a2a2a; border:1.5px solid #444; color:#ccc; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:13px; transition:all .2s; }
+.sc-opt-btn.active { background:#E8421A; border-color:#E8421A; color:#fff; }
+.sc-apply-btn { width:100%; background:#E8421A; color:#fff; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; }
+
+/* Filter thumbnails */
+.sc-filter-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.sc-filter-btn { background:none; border:2px solid transparent; border-radius:10px; padding:4px; cursor:pointer; color:#ccc; font-size:11px; text-align:center; transition:all .2s; }
+.sc-filter-btn.active { border-color:#E8421A; }
+.sc-filter-thumb { width:100%; aspect-ratio:1; border-radius:6px; background:#333; margin-bottom:4px; }
+.filter-clarendon .sc-filter-thumb { filter:contrast(1.2) saturate(1.35); background:#8B4513; }
+.filter-gingham .sc-filter-thumb { filter:brightness(1.05) hue-rotate(-10deg); background:#DEB887; }
+.filter-moon .sc-filter-thumb { filter:grayscale(1) contrast(1.1) brightness(1.1); background:#A0A0A0; }
+.filter-lark .sc-filter-thumb { filter:contrast(.9) brightness(1.1) saturate(1.1); background:#87CEEB; }
+.filter-reyes .sc-filter-thumb { filter:sepia(.3) contrast(.9) brightness(1.1) saturate(1.4); background:#D2691E; }
+.filter-juno .sc-filter-thumb { filter:saturate(1.4) contrast(1.05); background:#FF6B35; }
+.filter-slumber .sc-filter-thumb { filter:brightness(.9) sepia(.4) saturate(.8); background:#8B7355; }
+.filter-crema .sc-filter-thumb { filter:contrast(.9) brightness(1.1) sepia(.25); background:#FAEBD7; }
+
+/* Gradient grid */
+.sc-gradient-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.sc-grad-btn { aspect-ratio:1; border-radius:10px; border:2px solid transparent; cursor:pointer; transition:border-color .2s; }
+.sc-grad-btn.active { border-color:#fff; }
+
+/* Sticker grid */
+.sc-sticker-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; }
+.sc-sticker-btn { background:#2a2a2a; border:none; border-radius:8px; font-size:24px; padding:6px; cursor:pointer; transition:background .2s; }
+.sc-sticker-btn:hover { background:#3a3a3a; }
+
+/* CSS filters for canvas */
+.filter-clarendon { filter:contrast(1.2) saturate(1.35); }
+.filter-gingham    { filter:brightness(1.05) hue-rotate(-10deg); }
+.filter-moon       { filter:grayscale(1) contrast(1.1) brightness(1.1); }
+.filter-lark       { filter:contrast(.9) brightness(1.1) saturate(1.1); }
+.filter-reyes      { filter:sepia(.3) contrast(.9) brightness(1.1) saturate(1.4); }
+.filter-juno       { filter:saturate(1.4) contrast(1.05); }
+.filter-slumber    { filter:brightness(.9) sepia(.4) saturate(.8); }
+.filter-crema      { filter:contrast(.9) brightness(1.1) sepia(.25); }
+</style>
+
+<script>
+// ── State ──────────────────────────────────────────────────────
+const state = {
+  caption:'', textColor:'#ffffff', textSize:24, textAlign:'center', textStyle:'normal',
+  bgColor:'#000000', bgGradient:'', filterName:'none',
+  stickers:[], musicTitle:'', musicArtist:'', pollQ:'', pollA:'', pollB:'',
+};
+
+// ── Element refs ───────────────────────────────────────────────
+const canvas      = document.getElementById('scCanvas');
+const scBg        = document.getElementById('scBg');
+const scImage     = document.getElementById('scImage');
+const scFilter    = document.getElementById('scFilterLayer');
+const scText      = document.getElementById('scTextOverlay');
+const scMusic     = document.getElementById('scMusicTag');
+const scPoll      = document.getElementById('scPollPreview');
+const scStickers  = document.getElementById('scStickersLayer');
+const fileInput   = document.querySelector('input[name="image"]');
+
+// ── Panel toggling ─────────────────────────────────────────────
+function openPanel(id) {
+  document.querySelectorAll('.sc-panel').forEach(p => p.classList.remove('open'));
+  document.getElementById(id).classList.add('open');
+}
+function closePanel(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.sc-panel-close').forEach(btn => {
+  btn.addEventListener('click', () => closePanel(btn.dataset.panel));
+});
+document.getElementById('btnText').addEventListener('click',    () => openPanel('panelText'));
+document.getElementById('btnFilter').addEventListener('click',  () => openPanel('panelFilter'));
+document.getElementById('btnBg').addEventListener('click',      () => openPanel('panelBg'));
+document.getElementById('btnSticker').addEventListener('click', () => openPanel('panelSticker'));
+document.getElementById('btnPoll').addEventListener('click',    () => openPanel('panelPoll'));
+
+// ── Image upload ───────────────────────────────────────────────
+document.getElementById('btnUpload').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    scImage.src = ev.target.result;
+    scImage.style.display = 'block';
+    applyFilter();
+  };
+  r.readAsDataURL(f);
+});
+
+// ── Text controls ──────────────────────────────────────────────
+function updateTextOverlay() {
+  if (!state.caption) { scText.style.display = 'none'; return; }
+  scText.style.display = 'block';
+  scText.textContent   = state.caption;
+  scText.style.color   = state.textColor;
+  scText.style.fontSize = state.textSize + 'px';
+  scText.style.textAlign = state.textAlign;
+
+  scText.style.fontWeight    = state.textStyle === 'bold'   ? '700' : '400';
+  scText.style.fontStyle     = state.textStyle === 'italic' ? 'italic' : 'normal';
+  scText.style.textShadow    = state.textStyle === 'shadow' ? '2px 2px 6px rgba(0,0,0,0.9)' :
+                                state.textStyle === 'neon'  ? '0 0 10px currentColor, 0 0 20px currentColor' : 'none';
+}
+
+document.getElementById('txtCaption').addEventListener('input', e => {
+  state.caption = e.target.value; updateTextOverlay();
+});
+document.getElementById('txtColor').addEventListener('input', e => {
+  state.textColor = e.target.value; updateTextOverlay();
+});
+document.getElementById('txtSize').addEventListener('input', e => {
+  state.textSize = e.target.value;
+  document.getElementById('txtSizeVal').textContent = e.target.value + 'px';
+  updateTextOverlay();
+});
+
+// Align buttons
+document.querySelectorAll('[data-align]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-align]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.textAlign = btn.dataset.align;
+    updateTextOverlay();
+  });
+});
+
+// Style buttons
+document.querySelectorAll('[data-style]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-style]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.textStyle = btn.dataset.style;
+    updateTextOverlay();
+  });
+});
+
+// ── Background ─────────────────────────────────────────────────
+document.getElementById('bgColor').addEventListener('input', e => {
+  state.bgColor = e.target.value; state.bgGradient = '';
+  scBg.style.background = state.bgColor;
+  document.querySelectorAll('.sc-grad-btn').forEach(b => b.classList.remove('active'));
+});
+document.querySelectorAll('.sc-grad-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sc-grad-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.bgGradient = btn.dataset.grad;
+    scBg.style.background = `linear-gradient(${state.bgGradient})`;
+  });
+});
+
+// ── Filters ────────────────────────────────────────────────────
+function applyFilter() {
+  scImage.className = 'sc-image-layer';
+  if (state.filterName !== 'none') scImage.classList.add(`filter-${state.filterName}`);
+}
+document.querySelectorAll('.sc-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sc-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.filterName = btn.dataset.filter;
+    applyFilter();
+  });
+});
+
+// ── Stickers ───────────────────────────────────────────────────
+document.querySelectorAll('.sc-sticker-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const emoji = btn.dataset.emoji;
+    addSticker(emoji, 50, 50);
+    closePanel('panelSticker');
+  });
+});
+
+function addSticker(emoji, xPct, yPct) {
+  const id = Date.now();
+  const el = document.createElement('div');
+  el.className = 'sc-sticker-item';
+  el.textContent = emoji;
+  el.dataset.id  = id;
+  el.style.left  = xPct + '%';
+  el.style.top   = yPct + '%';
+  el.style.transform = 'translate(-50%,-50%)';
+  scStickers.appendChild(el);
+  makeDraggable(el);
+
+  // Double-click to remove
+  el.addEventListener('dblclick', () => {
+    el.remove();
+    state.stickers = state.stickers.filter(s => s.id !== id);
+  });
+
+  state.stickers.push({id, emoji, x: xPct, y: yPct, rotation:0, scale:1});
+}
+
+function makeDraggable(el) {
+  let startX, startY, origLeft, origTop;
+  el.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const rect = scStickers.getBoundingClientRect();
+    startX   = e.clientX;
+    startY   = e.clientY;
+    origLeft = parseFloat(el.style.left);
+    origTop  = parseFloat(el.style.top);
+
+    function onMove(e) {
+      const dx = ((e.clientX - startX) / rect.width)  * 100;
+      const dy = ((e.clientY - startY) / rect.height) * 100;
+      el.style.left = (origLeft + dx) + '%';
+      el.style.top  = (origTop  + dy) + '%';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      const s = state.stickers.find(s => s.id == el.dataset.id);
+      if (s) { s.x = parseFloat(el.style.left); s.y = parseFloat(el.style.top); }
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+// ── Poll ───────────────────────────────────────────────────────
+document.getElementById('applyPoll').addEventListener('click', () => {
+  state.pollQ = document.getElementById('pollQ').value.trim();
+  state.pollA = document.getElementById('pollA').value.trim() || 'Yes';
+  state.pollB = document.getElementById('pollB').value.trim() || 'No';
+  if (state.pollQ) {
+    document.getElementById('scPollQ').textContent = state.pollQ;
+    document.getElementById('scPollA').textContent = state.pollA;
+    document.getElementById('scPollB').textContent = state.pollB;
+    scPoll.style.display = 'block';
+  }
+  closePanel('panelPoll');
+});
+
+// ── Submit — write state into hidden form fields ───────────────
+document.getElementById('scShareBtn').addEventListener('click', () => {
+  document.getElementById('fCaption').value    = state.caption;
+  document.getElementById('fTextColor').value  = state.textColor;
+  document.getElementById('fTextSize').value   = state.textSize;
+  document.getElementById('fTextAlign').value  = state.textAlign;
+  document.getElementById('fTextStyle').value  = state.textStyle;
+  document.getElementById('fBgColor').value    = state.bgColor;
+  document.getElementById('fBgGradient').value = state.bgGradient;
+  document.getElementById('fFilter').value     = state.filterName;
+  document.getElementById('fStickers').value   = JSON.stringify(state.stickers);
+  document.getElementById('fPollQ').value       = state.pollQ;
+  document.getElementById('fPollA').value       = state.pollA;
+  document.getElementById('fPollB').value       = state.pollB;
+
+  if (!state.caption && !fileInput.files.length) {
+    alert('Add a photo or some text first!');
+    return;
+  }
+  document.getElementById('scForm').submit();
+});
+</script>
+{% endblock %}
