@@ -60,7 +60,7 @@ def register_step1_view(request):
                     ),
                     from_email=getattr(django_settings, 'DEFAULT_FROM_EMAIL', 'noreply@socialhub.com'),
                     recipient_list=[email],
-                    fail_silently=False,
+                    fail_silently=True,
                 )
             except Exception:
                 # In dev, EMAIL_BACKEND = console — print to terminal; don't block signup
