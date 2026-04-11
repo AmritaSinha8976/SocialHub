@@ -48,23 +48,8 @@ def register_step1_view(request):
                 expires_at=timezone.now() + timedelta(minutes=10),
             )
 
-            # Send OTP email
-            try:
-                send_mail(
-                    subject='Your SocialHub OTP Code',
-                    message=(
-                        f'Hi {first_name},\n\n'
-                        f'Your OTP code is: {otp_code}\n\n'
-                        f'This code expires in 10 minutes.\n\n'
-                        f'— SocialHub Team'
-                    ),
-                    from_email=getattr(django_settings, 'DEFAULT_FROM_EMAIL', 'noreply@socialhub.com'),
-                    recipient_list=[email],
-                    fail_silently=True,
-                )
-            except Exception:
-                # In dev, EMAIL_BACKEND = console — print to terminal; don't block signup
-                pass
+            # Show OTP directly in the message (email not configured)
+            messages.info(request, f'Your OTP code is: {otp_code}')
 
             request.session['otp_email'] = email
             messages.success(request, f'OTP sent to {email}. Check your inbox (or console in dev).')
