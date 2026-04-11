@@ -9,7 +9,7 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = ['socialhub-vwmf.onrender.com', 'localhost', '127.0.0.1']
 
 # PostgreSQL in production (via DATABASE_URL env var)
 DATABASES = {
