@@ -21,6 +21,8 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
 
     # Third party
+    'cloudinary_storage',
+    'cloudinary',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
